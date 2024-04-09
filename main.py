@@ -21,6 +21,7 @@ import json
 from utils.snowchat_ui import StreamlitUICallbackHandler, message_func
 from backend import preprocessor
 from backend import helper
+import nltk
 
 import ssl
 

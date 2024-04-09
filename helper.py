@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import requests
 import ssl
+import nltk
 ssl._create_default_https_context = ssl._create_unverified_context
 
 from instagram_private_api import ClientCookieExpiredError, ClientLoginRequiredError, ClientError, ClientThrottledError

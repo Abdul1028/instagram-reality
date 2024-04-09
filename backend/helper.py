@@ -958,11 +958,7 @@ def create_average_wpm_graph( df : pd.DataFrame):
 # from langchain_experimental.agents.agent_toolkits import create_csv_agent
 # from langchain_openai import ChatOpenAI
 #
-# def get_gpt_response():
-#     os.environ["OPENAI_API_KEY"] = "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"
-#     llm = ChatOpenAI(temperature=0.7)
-#     agent = create_csv_agent(llm, "my_csv_data.csv", verbose=True)
-#     return  agent
+
 #
 #
 

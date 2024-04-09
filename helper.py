@@ -36,6 +36,18 @@ def from_json(json_object):
         return codecs.decode(json_object['__value__'].encode(), 'base64')
     return json_object
 
+import ssl
+
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+
+nltk.download('vader_lexicon')
+nltk.download('punkt')
+
 
 class InstagramHelper:
     api = None

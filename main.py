@@ -22,6 +22,17 @@ from utils.snowchat_ui import StreamlitUICallbackHandler, message_func
 from backend import preprocessor
 from backend import helper
 
+import ssl
+
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+
+nltk.download('vader_lexicon')
+nltk.download('punkt')
 
 # Layout
 st.set_page_config(

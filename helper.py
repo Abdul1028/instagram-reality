@@ -5,6 +5,7 @@ import datetime
 import sys
 import urllib
 import os
+from logging import fatal
 from pathlib import Path
 import requests
 import ssl
@@ -61,10 +62,13 @@ class InstagramHelper:
     output_dir = "output"
 
 
-    def __init__(self, target, output_dir, is_file=None, is_json=None):
+
+    def __init__(self, target, output_dir, username,password,is_file=None, is_json=None):
         self.output_dir = output_dir or self.output_dir
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
-        self.login("abdul.ipa","Instagram@1028")
+        # self.login("abdul.ipa","Instagram@1028")
+        # self.login("tempdev1028","Instagram@2003")
+        self.login(username,password)
         self.setTarget(target)
         st.toast(target)
         self.writeFile = is_file
@@ -196,7 +200,7 @@ class InstagramHelper:
             df = pd.DataFrame(sort_addresses, columns=['Address', 'Time'])
 
             # Display the DataFrame as a table
-            st.table(df)
+            st.dataframe(df,use_container_width=True,hide_index=True)
 
         else:
             st.write("Sorry! No results found :-(\n")
@@ -291,6 +295,48 @@ class InstagramHelper:
         st.write(str(comments_counter)   )
         st.write(" comments in " + str(posts) + " posts\n")
 
+    # def get_comment_data(self):
+    #     if self.check_private_profile():
+    #         return
+    #
+    #     st.write("Retrieving all comments, this may take a moment...\n")
+    #     data = self.__get_feed__()
+    #
+    #     _comments = []
+    #     t = PrettyTable(['POST ID', 'ID', 'Username', 'Comment'])
+    #     t.align["POST ID"] = "l"
+    #     t.align["ID"] = "l"
+    #     t.align["Username"] = "l"
+    #     t.align["Comment"] = "l"
+    #
+    #     for post in data:
+    #         post_id = post.get('id')
+    #         comments = self.api.media_n_comments(post_id)
+    #         for comment in comments:
+    #             t.add_row([post_id, comment.get('user_id'), comment.get('user').get('username'), comment.get('text')])
+    #             comment = {
+    #                 "post_id": post_id,
+    #                 "user_id": comment.get('user_id'),
+    #                 "username": comment.get('user').get('username'),
+    #                 "comment": comment.get('text')
+    #             }
+    #             _comments.append(comment)
+    #
+    #     st.write(t)
+    #     # if self.writeFile:
+    #     #     file_name = self.output_dir + "/" + self.target + "_comment_data.txt"
+    #     #     with open(file_name, 'w') as f:
+    #     #         f.write(str(t))
+    #     #         f.close()
+    #     #
+    #     # if self.jsonDump:
+    #     #     file_name_json = self.output_dir + "/" + self.target + "_comment_data.json"
+    #     #     with open(file_name_json, 'w') as f:
+    #     #         f.write("{ \"Comments\":[ \n")
+    #     #         f.write('\n'.join(json.dumps(comment) for comment in _comments) + ',\n')
+    #     #         f.write("]} ")
+
+
     def get_comment_data(self):
         if self.check_private_profile():
             return
@@ -299,38 +345,28 @@ class InstagramHelper:
         data = self.__get_feed__()
 
         _comments = []
-        t = PrettyTable(['POST ID', 'ID', 'Username', 'Comment'])
-        t.align["POST ID"] = "l"
-        t.align["ID"] = "l"
-        t.align["Username"] = "l"
-        t.align["Comment"] = "l"
 
+        # Prepare to collect comment data
         for post in data:
             post_id = post.get('id')
             comments = self.api.media_n_comments(post_id)
             for comment in comments:
-                t.add_row([post_id, comment.get('user_id'), comment.get('user').get('username'), comment.get('text')])
-                comment = {
+                comment_info = {
+                    "username": comment.get('user').get('username'),
+                    "comment": comment.get('text'),
                     "post_id": post_id,
                     "user_id": comment.get('user_id'),
-                    "username": comment.get('user').get('username'),
-                    "comment": comment.get('text')
                 }
-                _comments.append(comment)
+                _comments.append(comment_info)  # Store comment info in the list
 
-        st.write(t)
-        # if self.writeFile:
-        #     file_name = self.output_dir + "/" + self.target + "_comment_data.txt"
-        #     with open(file_name, 'w') as f:
-        #         f.write(str(t))
-        #         f.close()
-        #
-        # if self.jsonDump:
-        #     file_name_json = self.output_dir + "/" + self.target + "_comment_data.json"
-        #     with open(file_name_json, 'w') as f:
-        #         f.write("{ \"Comments\":[ \n")
-        #         f.write('\n'.join(json.dumps(comment) for comment in _comments) + ',\n')
-        #         f.write("]} ")
+        if _comments:
+            # Create a DataFrame to hold the comment data
+            df = pd.DataFrame(_comments)
+
+            # Display the DataFrame as a table in Streamlit
+            st.dataframe(df,use_container_width=True,hide_index=True)  # Use st.dataframe(df) for an interactive table
+        else:
+            st.write("No comments found for any posts.\n")
 
     def get_followers(self):
         if self.check_private_profile():
@@ -354,48 +390,35 @@ class InstagramHelper:
             _followers.extend(results.get('users', []))
             next_max_id = results.get('next_max_id')
 
-        st.write("\n")
+        print("\n")
 
         for user in _followers:
             u = {
-                'id': user['pk'],
                 'username': user['username'],
-                'full_name': user['full_name']
+                'full_name': user['full_name'],
+                'id': user['pk'],
             }
             followers.append(u)
 
-        t = PrettyTable(['ID', 'Username', 'Full Name'])
-        t.align["ID"] = "l"
-        t.align["Username"] = "l"
-        t.align["Full Name"] = "l"
+        # Create a DataFrame from the followers list
+        df_followers = pd.DataFrame(followers)
 
-        json_data = {}
-        followings_list = []
+        # Display the DataFrame as a table in Streamlit
+        st.write("### Followers")
+        st.write(f'Total {len(followers)} followings found')
+        st.dataframe(df_followers, use_container_width=True,hide_index=True)
 
-        for node in followers:
-            t.add_row([str(node['id']), node['username'], node['full_name']])
-
-            if self.jsonDump:
-                follow = {
-                    'id': node['id'],
-                    'username': node['username'],
-                    'full_name': node['full_name']
-                }
-                followings_list.append(follow)
-
+        # Uncomment the following lines if you want to write to file or json
         # if self.writeFile:
         #     file_name = self.output_dir + "/" + self.target + "_followers.txt"
-        #     file = open(file_name, "w")
-        #     file.write(str(t))
-        #     file.close()
+        #     with open(file_name, "w") as file:
+        #         file.write(str(df_followers))
         #
         # if self.jsonDump:
-        #     json_data['followers'] = followers
+        #     json_data = {'followers': followers}
         #     json_file_name = self.output_dir + "/" + self.target + "_followers.json"
         #     with open(json_file_name, 'w') as f:
         #         json.dump(json_data, f)
-
-        st.write(t)
 
     def get_followings(self):
         if self.check_private_profile():
@@ -423,44 +446,32 @@ class InstagramHelper:
 
         for user in _followings:
             u = {
-                'id': user['pk'],
                 'username': user['username'],
-                'full_name': user['full_name']
+                'full_name': user['full_name'],
+                'id': user['pk'],
             }
             followings.append(u)
 
-        t = PrettyTable(['ID', 'Username', 'Full Name'])
-        t.align["ID"] = "l"
-        t.align["Username"] = "l"
-        t.align["Full Name"] = "l"
+        # Create a DataFrame from the followings list
+        df_followings = pd.DataFrame(followings)
 
-        json_data = {}
-        followings_list = []
+        # Display the DataFrame as a table in Streamlit
+        st.write("### Followings")
+        st.write(f'Total {len(followings)} followings found')
+        st.dataframe(df_followings, use_container_width=True,hide_index=True)
 
-        for node in followings:
-            t.add_row([str(node['id']), node['username'], node['full_name']])
-
-            if self.jsonDump:
-                follow = {
-                    'id': node['id'],
-                    'username': node['username'],
-                    'full_name': node['full_name']
-                }
-                followings_list.append(follow)
-
+        # Uncomment the following lines if you want to write to file or json
         # if self.writeFile:
         #     file_name = self.output_dir + "/" + self.target + "_followings.txt"
-        #     file = open(file_name, "w")
-        #     file.write(str(t))
-        #     file.close()
+        #     with open(file_name, "w") as file:
+        #         file.write(str(df_followings))
         #
         # if self.jsonDump:
-        #     json_data['followings'] = followings_list
+        #     json_data = {'followings': followings}
         #     json_file_name = self.output_dir + "/" + self.target + "_followings.json"
         #     with open(json_file_name, 'w') as f:
         #         json.dump(json_data, f)
 
-        st.write(t)
 
     def get_hashtags(self):
         if self.check_private_profile():
@@ -469,7 +480,6 @@ class InstagramHelper:
         st.write("Searching for target hashtags...\n")
 
         hashtags = []
-        counter = 1
         texts = []
 
         data = self.api.user_feed(str(self.target_id))
@@ -487,7 +497,6 @@ class InstagramHelper:
                 for s in caption.split():
                     if s.startswith('#'):
                         hashtags.append(s.encode('UTF-8'))
-                        counter += 1
 
         if len(hashtags) > 0:
             hashtag_counter = {}
@@ -498,113 +507,21 @@ class InstagramHelper:
                 else:
                     hashtag_counter[i] = 1
 
+            # Sort hashtags based on their counts
             ssort = sorted(hashtag_counter.items(), key=lambda value: value[1], reverse=True)
 
-            file = None
-            json_data = {}
-            hashtags_list = []
+            # Prepare data for the DataFrame
+            data_dict = {
+                'Hashtag': [str(k.decode('utf-8')) for k, v in ssort],
+                'Count': [v for k, v in ssort]
+            }
+            df = pd.DataFrame(data_dict)
 
-            if self.writeFile:
-                file_name = self.output_dir + "/" + self.target + "_hashtags.txt"
-                file = open(file_name, "w")
+            # Display the DataFrame as a table in Streamlit
+            st.dataframe(df, use_container_width=True,hide_index=True)  # Use st.dataframe for an interactive table
 
-            for k, v in ssort:
-                hashtag = str(k.decode('utf-8'))
-                st.write(str(v) + ". " + hashtag)
-                # if self.writeFile:
-                #     file.write(str(v) + ". " + hashtag + "\n")
-                # if self.jsonDump:
-                #     hashtags_list.append(hashtag)
-
-            # if file is not None:
-            #     file.close()
-            #
-            # if self.jsonDump:
-            #     json_data['hashtags'] = hashtags_list
-            #     json_file_name = self.output_dir + "/" + self.target + "_hashtags.json"
-            #     with open(json_file_name, 'w') as f:
-            #         json.dump(json_data, f)
         else:
-            st.write("Sorry! No results found :-(\n"  )
-
-    # def get_user_info(self):
-    #     try:
-    #         endpoint = 'users/{user_id!s}/full_detail_info/'.format(**{'user_id': self.target_id})
-    #         content = self.api._call_api(endpoint)
-    #         data = content['user_detail']['user']
-    #
-    #         st.write("[ID] " )
-    #         st.write(str(data['pk']) + '\n')
-    #         st.write("[FULL NAME] "  )
-    #         st.write(str(data['full_name']) + '\n')
-    #         st.write("[BIOGRAPHY] "    )
-    #         st.write(str(data['biography']) + '\n')
-    #         st.write("[FOLLOWED] "     )
-    #         st.write(str(data['follower_count']) + '\n')
-    #         st.write("[FOLLOW] " )
-    #         st.write(str(data['following_count']) + '\n')
-    #         st.write("[BUSINESS ACCOUNT] "  )
-    #         st.write(str(data['is_business']) + '\n')
-    #         if data['is_business']:
-    #             if not data['can_hide_category']:
-    #                 st.write("[BUSINESS CATEGORY] ")
-    #                 st.write(str(data['category']) + '\n')
-    #         st.write("[VERIFIED ACCOUNT] "    )
-    #         st.write(str(data['is_verified']) + '\n')
-    #         if 'public_email' in data and data['public_email']:
-    #             st.write("[EMAIL] "     )
-    #             st.write(str(data['public_email']) + '\n')
-    #         st.write("[HD PROFILE PIC] " )
-    #         st.write(str(data['hd_profile_pic_url_info']['url']) + '\n')
-    #         if 'fb_page_call_to_action_id' in data and data['fb_page_call_to_action_id']:
-    #             st.write("[FB PAGE] "  )
-    #             st.write(str(data['connected_fb_page']) + '\n')
-    #         if 'whatsapp_number' in data and data['whatsapp_number']:
-    #             st.write("[WHATSAPP NUMBER] " )
-    #             st.write(str(data['whatsapp_number']) + '\n')
-    #         if 'city_name' in data and data['city_name']:
-    #             st.write("[CITY] " )
-    #             st.write(str(data['city_name']) + '\n')
-    #         if 'address_street' in data and data['address_street']:
-    #             st.write("[ADDRESS STREET] "  )
-    #             st.write(str(data['address_street']) + '\n')
-    #         if 'contact_phone_number' in data and data['contact_phone_number']:
-    #             st.write("[CONTACT PHONE NUMBER] "    )
-    #             st.write(str(data['contact_phone_number']) + '\n')
-    #
-    #         # if self.jsonDump:
-    #         #     user = {
-    #         #         'id': data['pk'],
-    #         #         'full_name': data['full_name'],
-    #         #         'biography': data['biography'],
-    #         #         'edge_followed_by': data['follower_count'],
-    #         #         'edge_follow': data['following_count'],
-    #         #         'is_business_account': data['is_business'],
-    #         #         'is_verified': data['is_verified'],
-    #         #         'profile_pic_url_hd': data['hd_profile_pic_url_info']['url']
-    #         #     }
-    #         #     if 'public_email' in data and data['public_email']:
-    #         #         user['email'] = data['public_email']
-    #         #     if 'fb_page_call_to_action_id' in data and data['fb_page_call_to_action_id']:
-    #         #         user['connected_fb_page'] = data['fb_page_call_to_action_id']
-    #         #     if 'whatsapp_number' in data and data['whatsapp_number']:
-    #         #         user['whatsapp_number'] = data['whatsapp_number']
-    #         #     if 'city_name' in data and data['city_name']:
-    #         #         user['city_name'] = data['city_name']
-    #         #     if 'address_street' in data and data['address_street']:
-    #         #         user['address_street'] = data['address_street']
-    #         #     if 'contact_phone_number' in data and data['contact_phone_number']:
-    #         #         user['contact_phone_number'] = data['contact_phone_number']
-    #         #
-    #         #     json_file_name = self.output_dir + "/" + self.target + "_info.json"
-    #         #     with open(json_file_name, 'w') as f:
-    #         #         json.dump(user, f)
-    #
-    #     except ClientError as e:
-    #         st.write(e)
-    #         st.write("Oops... " + str(self.target) + " non exist, please enter a valid username."  )
-    #         st.write("\n")
-
+            st.write("Sorry! No results found :-(\n")
 
     def get_user_info(self):
         try:
@@ -714,6 +631,9 @@ class InstagramHelper:
         else:
             st.write("Sorry! No results found :-(\n"  )
 
+    import streamlit as st
+    import pandas as pd
+
     def get_people_who_commented(self):
         if self.check_private_profile():
             return
@@ -726,6 +646,7 @@ class InstagramHelper:
         for post in data:
             comments = self.__get_comments__(post['id'])
             for comment in comments:
+                # Check if the user is already in the list
                 if not any(u['id'] == comment['user']['pk'] for u in users):
                     user = {
                         'id': comment['user']['pk'],
@@ -741,36 +662,26 @@ class InstagramHelper:
                             break
 
         if len(users) > 0:
+            # Sort users based on the number of comments
             ssort = sorted(users, key=lambda value: value['counter'], reverse=True)
 
-            json_data = {}
+            # Create a DataFrame to hold the user data
+            data_dict = {
+                'Comments': [str(u['counter']) for u in ssort],
+                'ID': [u['id'] for u in ssort],
+                'Username': [u['username'] for u in ssort],
+                'Full Name': [u['full_name'] for u in ssort]
+            }
+            df = pd.DataFrame(data_dict)
 
-            t = PrettyTable()
+            # Display the DataFrame as a table in Streamlit without the index
+            st.dataframe(df, use_container_width=True,hide_index=True)  # Use st.dataframe for an interactive table
 
-            t.field_names = ['Comments', 'ID', 'Username', 'Full Name']
-            t.align["Comments"] = "l"
-            t.align["ID"] = "l"
-            t.align["Username"] = "l"
-            t.align["Full Name"] = "l"
-
-            for u in ssort:
-                t.add_row([str(u['counter']), u['id'], u['username'], u['full_name']])
-
-            st.write(t)
-
-            # if self.writeFile:
-            #     file_name = self.output_dir + "/" + self.target + "_users_who_commented.txt"
-            #     file = open(file_name, "w")
-            #     file.write(str(t))
-            #     file.close()
-            #
-            # if self.jsonDump:
-            #     json_data['users_who_commented'] = ssort
-            #     json_file_name = self.output_dir + "/" + self.target + "_users_who_commented.json"
-            #     with open(json_file_name, 'w') as f:
-            #         json.dump(json_data, f)
         else:
-            st.write("Sorry! No results found :-(\n"  )
+            st.write("Sorry! No results found :-(\n")
+
+    import streamlit as st
+    import pandas as pd
 
     def get_people_who_tagged(self):
         if self.check_private_profile():
@@ -790,7 +701,7 @@ class InstagramHelper:
             next_max_id = results.get('next_max_id')
 
         if len(posts) > 0:
-            st.write("\nWoohoo! We found " + str(len(posts)) + " photos\n" )
+            st.write("\nWoohoo! We found " + str(len(posts)) + " photos\n")
 
             users = []
 
@@ -809,28 +720,21 @@ class InstagramHelper:
                             user['counter'] += 1
                             break
 
+            # Sort users by the number of photos tagged
             ssort = sorted(users, key=lambda value: value['counter'], reverse=True)
 
-            json_data = {}
+            # Create a DataFrame from the sorted user list
+            df_users = pd.DataFrame(ssort)
 
-            t = PrettyTable()
+            # Display the DataFrame as a table in Streamlit
+            st.write("### Users Who Tagged Target")
+            st.dataframe(df_users[['username', 'full_name','counter', 'id', ]], use_container_width=True,hide_index=True)
 
-            t.field_names = ['Photos', 'ID', 'Username', 'Full Name']
-            t.align["Photos"] = "l"
-            t.align["ID"] = "l"
-            t.align["Username"] = "l"
-            t.align["Full Name"] = "l"
-
-            for u in ssort:
-                t.add_row([str(u['counter']), u['id'], u['username'], u['full_name']])
-
-            st.write(t)
-
+            # Uncomment the following lines if you want to write to file or json
             # if self.writeFile:
             #     file_name = self.output_dir + "/" + self.target + "_users_who_tagged.txt"
-            #     file = open(file_name, "w")
-            #     file.write(str(t))
-            #     file.close()
+            #     with open(file_name, "w") as file:
+            #         file.write(str(df_users))
             #
             # if self.jsonDump:
             #     json_data['users_who_tagged'] = ssort
@@ -838,7 +742,7 @@ class InstagramHelper:
             #     with open(json_file_name, 'w') as f:
             #         json.dump(json_data, f)
         else:
-            st.write("Sorry! No results found :-(\n"  )
+            st.write("Sorry! No results found :-(\n")
 
     def get_photo_description(self):
         if self.check_private_profile():
@@ -1038,54 +942,29 @@ class InstagramHelper:
                         else:
                             index = ids.index(cc.get('user').get('pk'))
                             post[index] += 1
-                        counter = counter + 1
+                        counter += 1
         except AttributeError as ae:
-            st.write("\nERROR: an error occurred: "  )
+            st.write("\nERROR: an error occurred: ")
             st.write(ae)
             st.write("")
-            pass
+            return  # Exit if there's an error
 
         if len(ids) > 0:
-            t = PrettyTable()
+            st.write("\nWoohoo! We found " + str(len(ids)) + " (" + str(counter) + ") users\n")
 
-            t.field_names = ['Posts', 'Full Name', 'Username', 'ID']
-            t.align["Posts"] = "l"
-            t.align["Full Name"] = "l"
-            t.align["Username"] = "l"
-            t.align["ID"] = "l"
+            # Create a DataFrame to hold the data
+            data_dict = {
+                'Posts': post,
+                'Full Name': full_name,
+                'Username': username,
+                'ID': ids
+            }
+            df = pd.DataFrame(data_dict)
 
-            st.write("\nWoohoo! We found " + str(len(ids)) + " (" + str(counter) + ") users\n" )
-
-            json_data = {}
-            tagged_list = []
-
-            for i in range(len(ids)):
-                t.add_row([post[i], full_name[i], username[i], str(ids[i])])
-            #
-            #     if self.jsonDump:
-            #         tag = {
-            #             'post': post[i],
-            #             'full_name': full_name[i],
-            #             'username': username[i],
-            #             'id': ids[i]
-            #         }
-            #         tagged_list.append(tag)
-            #
-            # if self.writeFile:
-            #     file_name = self.output_dir + "/" + self.target + "_tagged.txt"
-            #     file = open(file_name, "w")
-            #     file.write(str(t))
-            #     file.close()
-            #
-            # if self.jsonDump:
-            #     json_data['tagged'] = tagged_list
-            #     json_file_name = self.output_dir + "/" + self.target + "_tagged.json"
-            #     with open(json_file_name, 'w') as f:
-            #         json.dump(json_data, f)
-
-            st.write(t)
+            # Display the DataFrame as a table in Streamlit
+            st.dataframe(df,use_container_width=True,hide_index=True)
         else:
-            st.write("Sorry! No results found :-(\n"  )
+            st.write("Sorry! No results found :-(\n")
 
     def get_user(self, username):
         try:
@@ -1490,6 +1369,7 @@ class InstagramHelper:
         else:
             st.write("Sorry! No results found :-(\n"  )
 
+
     def get_comments(self):
         if self.check_private_profile():
             return
@@ -1502,8 +1382,7 @@ class InstagramHelper:
         for post in data:
             comments = self.__get_comments__(post['id'])
             for comment in comments:
-                st.write(comment['text'])
-
+                # Check if the user is already in the list
                 if not any(u['id'] == comment['user']['pk'] for u in users):
                     user = {
                         'id': comment['user']['pk'],
@@ -1519,36 +1398,23 @@ class InstagramHelper:
                             break
 
         if len(users) > 0:
+            # Sort users based on the number of comments
             ssort = sorted(users, key=lambda value: value['counter'], reverse=True)
 
-            json_data = {}
+            # Create a DataFrame to hold the user data
+            data_dict = {
+                'Comments': [str(u['counter']) for u in ssort],
+                'ID': [u['id'] for u in ssort],
+                'Username': [u['username'] for u in ssort],
+                'Full Name': [u['full_name'] for u in ssort]
+            }
+            df = pd.DataFrame(data_dict)
 
-            t = PrettyTable()
+            # Display the DataFrame as a table in Streamlit without the index
+            st.dataframe(df, use_container_width=True,hide_index=True)  # Use st.dataframe for an interactive table
 
-            t.field_names = ['Comments', 'ID', 'Username', 'Full Name']
-            t.align["Comments"] = "l"
-            t.align["ID"] = "l"
-            t.align["Username"] = "l"
-            t.align["Full Name"] = "l"
-
-            for u in ssort:
-                t.add_row([str(u['counter']), u['id'], u['username'], u['full_name']])
-
-            st.write(t)
-
-            # if self.writeFile:
-            #     file_name = self.output_dir + "/" + self.target + "_users_who_commented.txt"
-            #     file = open(file_name, "w")
-            #     file.write(str(t))
-            #     file.close()
-            #
-            # if self.jsonDump:
-            #     json_data['users_who_commented'] = ssort
-            #     json_file_name = self.output_dir + "/" + self.target + "_users_who_commented.json"
-            #     with open(json_file_name, 'w') as f:
-            #         json.dump(json_data, f)
         else:
-            st.write("Sorry! No results found :-(\n"  )
+            st.write("Sorry! No results found :-(\n")
 
     def clear_cache(self):
         try:

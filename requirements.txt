@@ -144,7 +144,9 @@ validators==0.22.0
 watchdog==3.0.0
 Wave==0.0.2
 wcwidth==0.2.12
-wordcloud==1.9.2
+wordcloud
 yarl==1.9.4
 zipp==3.17.0
 firebase_admin
+stremalit-shadcn-ui
+

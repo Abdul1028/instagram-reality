@@ -22,7 +22,7 @@ from utils.snowchat_ui import StreamlitUICallbackHandler, message_func
 from backend import preprocessor
 from backend import helper
 import nltk
-
+import streamlit_shadcn_ui as ui
 import ssl
 
 try:
@@ -464,20 +464,24 @@ if selected == "Intro":
                 # Stats Area
                 num_messages, words, num_media_messages, num_links , num_reactions= helper.fetch_stats(selected_user, df)
                 st.title("Top Statistics")
-                col1, col2, col3, col4 = st.columns(4)
+                cols = st.columns(4)
 
-                with col1:
-                    st.header("Total Messages")
-                    st.metric(" ", num_messages)
-                with col2:
-                    st.header("Total Words")
-                    st.metric(" ", words)
-                with col3:
-                    st.header("Media Shared")
-                    st.metric(" ", num_media_messages)
-                with col4:
-                    st.header("Reactions")
-                    st.metric(" ", num_reactions)
+                with cols[0]:
+                    ui.metric_card(title="Messages", content=num_messages, description="Total messages done",
+                                   key="card1")
+                with cols[1]:
+                    ui.metric_card(title="Words", content=words, description="Total words in conversation",
+                                   key="card2")
+
+                with cols[2]:
+                    ui.metric_card(title="Media shared", content=int(num_media_messages), description="Total media shared in conversation",
+                                   key="card6")
+
+                with cols[3]:
+                    ui.metric_card(title="Reactions", content=int(num_reactions), description="Total reactions in conversation",
+                                   key="card90")
+
+
 
                 # working but shows a lot of graphs
                 # figures = helper.calculate_monthly_sentiment_trends(selected_user, df)

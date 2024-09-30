@@ -953,13 +953,6 @@ def create_average_wpm_graph( df : pd.DataFrame):
     date_avg_df = df[other_y_columns].resample('W').mean()
     fig = _create_wide_area_fig(date_avg_df)
     return fig
-#
-#
-# from langchain_experimental.agents.agent_toolkits import create_csv_agent
-# from langchain_openai import ChatOpenAI
-#
-#
-#
 
 # Function to plot Top Users
 def plot_top_users(data):

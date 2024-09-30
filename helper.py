@@ -66,8 +66,6 @@ class InstagramHelper:
     def __init__(self, target, output_dir, username,password,is_file=None, is_json=None):
         self.output_dir = output_dir or self.output_dir
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
-        # self.login("abdul.ipa","Instagram@1028")
-        # self.login("tempdev1028","Instagram@2003")
         self.login(username,password)
         self.setTarget(target)
         st.toast(target)

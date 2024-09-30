@@ -2,18 +2,12 @@ import streamlit as st
 import json
 import codecs
 import os.path
-from getpass import getuser
-
-import logging
-import datetime
 from instagram_private_api import (
     Client, ClientError, ClientLoginError,
     ClientCookieExpiredError, ClientLoginRequiredError,
     __version__ as client_version
 )
-
 from helper import InstagramHelper
-from getpass import getuser
 import streamlit_shadcn_ui as ui
 
 
@@ -34,8 +28,6 @@ def onlogin_callback(api, new_settings_file):
     cache_settings = api.settings
     with open(new_settings_file, 'w') as outfile:
         json.dump(cache_settings, outfile, default=to_json)
-        st.text('SAVED: {0!s}'.format(new_settings_file))
-
 
 def login(username,password):
     try:
@@ -48,13 +40,17 @@ def login(username,password):
             api = Client(
                 username, password,
                 on_login=lambda x: onlogin_callback(x, settings_file))
+            st.toast("Logged in successfully.")
+            st.balloons()
             return api
+
         else:
             # Reuse cached settings
             with open(settings_file) as file_data:
                 cached_settings = json.load(file_data, object_hook=from_json)
             device_id = cached_settings.get('device_id')
             api = Client(username, password, settings=cached_settings)
+            st.toast("Logged in from cache.")
             return api
 
     except ClientLoginError as e:
@@ -67,114 +63,150 @@ def login(username,password):
 def main():
     st.title('Instagram Analysis')
     st.sidebar.header('Login')
-    # username = st.sidebar.text_input('Instagram Username')
-    # password = st.sidebar.text_input('Instagram Password', type='password')
-    # submit_button = st.sidebar.button('Login')
-
+    username = st.sidebar.text_input('Instagram Username')
+    password = st.sidebar.text_input('Instagram Password', type='password')
     with st.sidebar:
-        with ui.card(key="card1"):
-            ui.element("span", children=["Email"], className="text-gray-400 text-sm font-medium m-1", key="label1")
-            ui.element("input", key="email_input", placeholder="Your email")
+        submit_button = ui.button("Login", variant="outline", key="login")
 
-            ui.element("span", children=["Password"], className="text-gray-400 text-sm font-medium m-1", key="label2")
-            ui.element("input", key="password_input", placeholder="Enter your password")
-            ui.element("button", text="Login", key="button", className="m-1")
-
-    # Define columns
-    col1, col2, col3, col4 = st.columns(4)
-
-    # First row of buttons
-    fetch_user_info = col1.button("Get User Info")
-    fetch_captions = col2.button("Get Captions")
-    fetch_tagged = col3.button("Get People Tagged")
-    fetch_comments = col4.button("Get Comments")
-
-    # Second row of buttons
-    fetch_hashtags = col1.button("Get Hashtags")
-    fetch_address = col2.button("Get Addresses")
-    fetch_followings = col3.button("Get Followings")
-    fetch_total_likes = col4.button("Get Total Likes")
-
-    # Third row of buttons
-    fetch_fwersemail = col1.button("Get Followers' Emails")
-    fetch_fwersnumber = col2.button("Get Followers' Numbers")
-    fetch_fwingsemail = col3.button("Get Followings' Emails")
-    fetch_fwingsnumber = col4.button("Get Followings' Numbers")
-
-    # Fourth row of buttons
-    fetch_people_commented = col1.button("Get People Who Commented")
-    fetch_people_tagged = col2.button("Get People Who Tagged")
-    fetch_total_comments = col3.button("Get Total Comments")
-    fetch_followers = col4.button("Get Followers")
-
-    # with ui.card(key="card13"):
-    #     ui.element("button", text="Login", key="button", className="m-1")
-    #     ui.element("button", text="Login", key="button", className="m-1")
-    #     ui.element("button", text="Login", key="button", className="m-1")
-    #     ui.element("button", text="Login", key="button", className="m-1")
-    #     ui.element("button", text="Login", key="button", className="m-1")
-    #     ui.element("button", text="Login", key="button", className="m-1")
-    #     ui.element("button", text="Login", key="button", className="m-1")
-    #     ui.element("button", text="Login", key="button", className="m-1")
-    #
-    # value = ui.tabs(options=['Profile Insights', 'Post Engagement', 'Connections', 'Interactions'], default_value='Profile Insights',
-    #                 key="categories")
-    #
-    # with ui.card(key="image"):
-    #     if value == "Profile Insights":
-    #         ui.element("text", children=["Get Profile Insights of user seamlessly"], className="text-gray-400 text-sm font-medium m-1", key="profile")
-    #         ui.element("button", text="Login", key="buttonf55", className="m-1")
-    #         ui.element("button", text="Login", key="buttonih7", className="m-1")
-    #         ui.element("button", text="Login", key="button876i", className="m-1")
-    #
-    #
-    #     elif value == "Graphic Walker":
-    #         ui.element("img", src="https://pub-8e7aa5bf51e049199c78b4bc744533f8.r2.dev/graphic-walker-banner.png",
-    #                    className="w-full")
-    #         ui.element("link_button", text=value + " Github", url="https://github.com/Kanaries/graphic-walker",
-    #                    className="mt-2", key="btn2")
-    #     elif value == "GWalkR":
-    #         ui.element("img", src="https://pub-8e7aa5bf51e049199c78b4bc744533f8.r2.dev/gwalkr-banner.png",
-    #                    className="w-full")
-    #         ui.element("link_button", text=value + " Github", url="https://github.com/Kanaries/gwalkr",
-    #                    className="mt-2", key="btn2")
-    #     elif value == "RATH":
-    #         ui.element("img", src="https://pub-8e7aa5bf51e049199c78b4bc744533f8.r2.dev/rath-painter.png",
-    #                    className="w-full")
-    #         ui.element("link_button", text=value + " Github", url="https://github.com/Kanaries/Rath", className="mt-2",
-    #                    key="btn2")
-    #     st.write("Selected:", value)
-    #
-    # st.write(ui.tabs)
-
-
-
-
+    fetch_tagged = None
+    fetch_comments = None
+    fetch_followings = None
+    fetch_total_likes = None
+    fetch_fwersemail = None
+    fetch_fwersnumber = None
+    fetch_fwingsemail = None
+    fetch_fwingsnumber = None
+    fetch_people_commented = None
+    fetch_people_tagged = None
+    fetch_total_comments = None
+    fetch_followers = None
+    fetch_user_info = None
+    fetch_captions = None
+    fetch_hashtags = None
+    fetch_address = None
+    logout = None
 
     # Ask the user to input the target username
     st.subheader('Enter Target Username')
     target_username = st.text_input('Target Username')
 
-    cols = st.columns(3)
-    with cols[0]:
-        ui.metric_card(title="Total Revenue", content="$45,231.89", description="+20.1% from last month", key="card11")
-    with cols[1]:
-        ui.metric_card(title="Total Revenue", content="$45,231.89", description="+20.1% from last month", key="card2")
-    with cols[2]:
-        ui.metric_card(title="Total Revenue", content="$45,231.89", description="+20.1% from last month", key="card3")
+
+    value = ui.tabs(options=['Profile Insights', 'Post Engagement', 'Connections', 'Interactions'], default_value='Profile Insights',
+                    key="categories")
+
+
+    if value == "Profile Insights":
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get information of user ")
+        with cols[1]:
+            fetch_user_info = ui.button("User Info", variant="outline", key="byf")
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get captions of user ")
+        with cols[1]:
+            fetch_captions = ui.button("Captions", variant="outline", key="byf2")
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get hashtags of user ")
+        with cols[1]:
+            fetch_hashtags = ui.button("Hashtags", variant="outline", key="byf3")
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get adresses of user ")
+        with cols[1]:
+            fetch_address = ui.button("Addresses", variant="outline", key="byf4")
+
+
+    elif value == "Post Engagement":
+        cols =st.columns(2)
+        with cols[0]:
+            st.write("Target tagged profiles")
+        with cols[1]:
+            fetch_tagged = ui.button("People Tagged", variant="outline", key="byf")
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Profiles tagged target")
+        with cols[1]:
+            fetch_people_tagged = ui.button("People Who Tagged", variant="outline", key="byf2")
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Comments of target profile ")
+        with cols[1]:
+            fetch_comments = ui.button("Comments", variant="outline", key="byf3")
+        cols = st.columns(2)
+        with cols[0]:
+                st.write("Profiles that commented on target ")
+        with cols[1]:
+            fetch_people_commented = ui.button("People Who Commented", variant="outline", key="byf4")
 
 
 
-    # if submit_button:
-    #      login(username,password)
+    elif value == "Connections":
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get target's followers's emails")
+        with cols[1]:
+            fetch_fwersemail = ui.button("Followers' Emails", variant="outline", key="byf")
+
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get target's follower's numbers")
+        with cols[1]:
+            fetch_fwersnumber = ui.button("Followers' Numbers", variant="outline", key="byf2")
+
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get target's following's emails")
+        with cols[1]:
+            fetch_fwingsemail = ui.button("Followings' Emails", variant="outline", key="byf3")
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get target's following's numbers")
+        with cols[1]:
+            fetch_fwingsnumber = ui.button("Followings' Numbers", variant="outline", key="byf4")
+
+    elif value == "Interactions":
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get target's followings")
+        with cols[1]:
+            fetch_followings = ui.button("Followings", variant="outline", key="byf")
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get target's followers")
+        with cols[1]:
+            fetch_followers = ui.button("Followers", variant="outline", key="byf2")
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get target's total likes")
+        with cols[1]:
+            fetch_total_likes = ui.button("Total Likes", variant="outline", key="byf3")
+        cols = st.columns(2)
+        with cols[0]:
+            st.write("Get target's total comments")
+        with cols[1]:
+            fetch_total_comments = ui.button("Total Comments", variant="outline", key="byf4")
+
+    logout = ui.button("Logout", variant="destructive", key="logout")
+
+    if logout:
+        os.remove("./settings.json")
+        st.toast("Logged out successfully")
+
+    api = None
+
+    if submit_button:
+         api = login(username,password)
+
+    with st.sidebar:
+        if(api != None):
+            st.write(f"Welcome {username} you can use services now")
 
 
     if target_username :
         try:
-            help = InstagramHelper(target_username, "output","abdul.ipa","Instagram@1028")
-
-
-            # Now handle button clicks and invoke corresponding functions
+            help = InstagramHelper(target_username, "output", username, password)
             if fetch_user_info:
                 help.get_user_info()
 
@@ -226,33 +258,16 @@ def main():
             if fetch_followers:
                 help.get_followers()
 
-
-
-
-
-
-            # help.get_user_info()
-            # help.get_captions()
-            # help.get_people_tagged_by_user()
-            # help.get_comments()
-            # help.get_hashtags()
-            # help.get_addrs()
-            # help.get_comment_data()
-            # help.get_addrs()
-            # help.get_followers()
-            # help.get_followings()
-            # help.get_fwersemail()
-            # help.get_fwersnumber()
-            # help.get_fwingsemail()
-            # help.get_fwingsnumber()
-            # help.get_people_who_commented()
-            # help.get_people_who_tagged()
-            # help.get_total_comments()
-            # help.get_total_likes()
-
         except ClientError as e:
             st.subheader('Error')
             st.error(f'Client Error: {e}')
+            os.remove("./settings.json")
+            st.toast("Sorry login again we cleared the session")
+        except Exception as e:
+            st.warning("Please login before using services")
+    else:
+        st.toast("Please enter username first ")
+
 
 
 

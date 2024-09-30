@@ -34,6 +34,7 @@ else:
 
 nltk.download('vader_lexicon')
 nltk.download('punkt')
+nltk.download('punkt_tab')
 
 # Layout
 st.set_page_config(
@@ -296,13 +297,9 @@ def login():
                     st.success("successfully signed in")
                     decoded_token = auth.verify_id_token(token)
                     uid = decoded_token['uid']
-                    st.success(f"Token: {token}")
                     st.session_state.user = uid
-
                     st.session_state.uid = uid
                     globaluid = uid
-
-                    st.success(f"UIDd: {globaluid}")
 
                 else:
                     st.error("Authentication failed.")
@@ -817,10 +814,11 @@ if selected == "Search":
         uploaded_file = st.file_uploader(label="""Upload your Whatsapp chat, don't worry, we won't peek""",
                                          key="notniq")
         if uploaded_file is not None:
-            bytes_data = uploaded_file.getvalue()
-            data = bytes_data.decode("utf-8")
-            df = preprocessor.preprocess(data)
-            # print("YOUR DATA FRAME IS: ", df)
+            if uploaded_file is not None:
+                df = preprocessor.process_file(uploaded_file)
+                st.toast("File processed successfully!")
+                print("YOUR DATA FRAME IS: ", df)
+                st.write(df)
             lottie = load_lottiefile("lottie_jsons/chatbot-icon.json")
             # with st.sidebar:
             #     st_lottie(lottie, key='loc2')
@@ -917,113 +915,115 @@ if selected == "Search":
                     st.experimental_rerun()
 
     else:
-        st.error("Please login to access this feature")
+        st.warning("Please login to access this feature")
 
+import osint
 if selected == "Osintgram":
+    if "user" in st.session_state:
+        ## OSINT.PY (WHOLE STREAMLIT APP)
+        osint.main()
+    else:
+        st.warning("Please login to access this feature")
 
-    target_username = st.text_input("Enter username")
-    if target_username :
-        try:
-            help = InstagramHelper(target_username, "output")
-        except Exception as e:
-            st.error(e)
+    # Kali like CLI UI made but not working so jusg load the osint component //sole py file (streamlit app)
 
-
-    def execute_command(command):
-        username = "example_username"  # You can replace this with actual username input from the user
-        if command.lower() == "user_info":
-            data = help.get_user_info()
-        elif command.lower() == "captions":
-            data = help.get_captions()
-        elif command.lower() == "people_tagged":
-            data = help.get_people_tagged_by_user()
-        elif command.lower() == "comments":
-            data = help.get_comments()
-        elif command.lower() == "hashtags":
-            data = help.get_hashtags()
-        elif command.lower() == "addresses":
-            data = help.get_addrs()
-        elif command.lower() == "comment_data":
-            data = help.get_comment_data()
-        elif command.lower() == "followers":
-            data = help.get_followers()
-        elif command.lower() == "followings":
-            data = help.get_followings()
-        elif command.lower() == "follower_email":
-            data = help.get_fwersemail()
-        elif command.lower() == "follower_number":
-            data = help.get_fwersnumber()
-        elif command.lower() == "following_email":
-            data = help.get_fwingsemail()
-        elif command.lower() == "following_number":
-            data = help.get_fwingsnumber()
-        elif command.lower() == "people_who_commented":
-            data = help.get_people_who_commented()
-        elif command.lower() == "people_who_tagged":
-            data = help.get_people_who_tagged()
-        elif command.lower() == "total_comments":
-            data = help.get_total_comments()
-        elif command.lower() == "total_likes":
-            data = help.get_total_likes()
-        else:
-            data = f"Error: Command '{command}' not recognized."
-
-        return data
-
-    st.title("Instagram Terminal")
-
-
-    # Function to initialize session state
-    def init_session_state():
-        if 'text_value' not in st.session_state:
-            st.session_state.text_value = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n$wit-reality/ig-service \n"
-
-
-
-    # Initialize session state
-    init_session_state()
-
-    with stylable_container(
-            key="green_button",
-            css_styles="""
-            textarea {
-                background-color: black;
-            color: lime;
-            font-family: monospace;
-            padding: 10px;
-            border-radius: 5px;
-            overflow-y: scroll;
-            height: 300px;
-            }
-            """,
-    ):
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        a = st.text_area("Enter command:", value=st.session_state.text_value)
-
-        # Store the entered text in session state
-        st.session_state.text_value = a
-
-        if st.button("Submit"):
-            entered_command = st.session_state.text_value.split('\n')[-1].strip().split()[-1]
-            executed_command = f"\n$wit-reality/ig-service> "
-            st.session_state.text_value += executed_command
-            st.write("Executed:", entered_command)
-            st.experimental_rerun()
-
-        st.toast(st.session_state.text_value.split('\n')[-2].strip().split()[-1])
-
-        command = st.session_state.text_value.split('\n')[-2].strip().split()[-1]
-        if command == "mkdir":
-            st.toast("direcrory created")
-
-        try:
-            data = execute_command(command)
-            st.toast(data)
-        except Exception as e:
-            os.remove("settings.json")
-            st.error("Ahh Ahh! Instagram caugh us! please refresh the page")
-
-
+    # target_username = st.text_input("Enter username")
+    # if target_username :
+    #     try:
+    #         help = InstagramHelper(target_username, "output")
+    #     except Exception as e:
+    #         st.error(e)
+    #
+    # def execute_command(command):
+    #     username = "example_username"  # You can replace this with actual username input from the user
+    #     if command.lower() == "user_info":
+    #         data = help.get_user_info()
+    #     elif command.lower() == "captions":
+    #         data = help.get_captions()
+    #     elif command.lower() == "people_tagged":
+    #         data = help.get_people_tagged_by_user()
+    #     elif command.lower() == "comments":
+    #         data = help.get_comments()
+    #     elif command.lower() == "hashtags":
+    #         data = help.get_hashtags()
+    #     elif command.lower() == "addresses":
+    #         data = help.get_addrs()
+    #     elif command.lower() == "comment_data":
+    #         data = help.get_comment_data()
+    #     elif command.lower() == "followers":
+    #         data = help.get_followers()
+    #     elif command.lower() == "followings":
+    #         data = help.get_followings()
+    #     elif command.lower() == "follower_email":
+    #         data = help.get_fwersemail()
+    #     elif command.lower() == "follower_number":
+    #         data = help.get_fwersnumber()
+    #     elif command.lower() == "following_email":
+    #         data = help.get_fwingsemail()
+    #     elif command.lower() == "following_number":
+    #         data = help.get_fwingsnumber()
+    #     elif command.lower() == "people_who_commented":
+    #         data = help.get_people_who_commented()
+    #     elif command.lower() == "people_who_tagged":
+    #         data = help.get_people_who_tagged()
+    #     elif command.lower() == "total_comments":
+    #         data = help.get_total_comments()
+    #     elif command.lower() == "total_likes":
+    #         data = help.get_total_likes()
+    #     else:
+    #         data = f"Error: Command '{command}' not recognized."
+    #
+    #     return data
+    #
+    # st.title("Instagram Terminal")
+    #
+    # # Function to initialize session state
+    # def init_session_state():
+    #     if 'text_value' not in st.session_state:
+    #         st.session_state.text_value = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n$wit-reality/ig-service \n"
+    #
+    # # Initialize session state
+    # init_session_state()
+    #
+    # with stylable_container(
+    #         key="green_button",
+    #         css_styles="""
+    #         textarea {
+    #             background-color: black;
+    #         color: lime;
+    #         font-family: monospace;
+    #         padding: 10px;
+    #         border-radius: 5px;
+    #         overflow-y: scroll;
+    #         height: 300px;
+    #         }
+    #         """,
+    # ):
+    #     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    #     a = st.text_area("Enter command:", value=st.session_state.text_value)
+    #
+    #     # Store the entered text in session state
+    #     st.session_state.text_value = a
+    #
+    #     if st.button("Submit"):
+    #         entered_command = st.session_state.text_value.split('\n')[-1].strip().split()[-1]
+    #         executed_command = f"\n$wit-reality/ig-service> "
+    #         st.session_state.text_value += executed_command
+    #         st.write("Executed:", entered_command)
+    #         st.experimental_rerun()
+    #
+    #     st.toast(st.session_state.text_value.split('\n')[-2].strip().split()[-1])
+    #
+    #     command = st.session_state.text_value.split('\n')[-2].strip().split()[-1]
+    #     if command == "mkdir":
+    #         st.toast("direcrory created")
+    #
+    #     try:
+    #         data = execute_command(command)
+    #         st.toast(data)
+    #     except Exception as e:
+    #         os.remove("settings.json")
+    #         st.error("Ahh Ahh! Instagram caugh us! please refresh the page")
 
 
 if selected == "Login":
